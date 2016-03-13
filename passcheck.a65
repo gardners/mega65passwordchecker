@@ -238,8 +238,8 @@ dd1:	cmp #80
 	ldx #$7 ; yellow for marginal
 dd2:	cmp #40
 	bne dd3
-	ldx #$8 ; red for bad (but not worst)
-dd3:	sta qualitycolour
+	ldx #$2 ; red for bad (but not worst)
+dd3:	stx qualitycolour
 
 	ldx #0
 	lda #42 ; asterisk for character display of password
@@ -250,6 +250,13 @@ dd4:	sta $06f8,x
 	inx
 	cpx #40
 	bne dd5
+
+	; set colour based on quality of password
+	lda qualitycolour
+	ldx #39
+dd6:	sta $daf8,x
+	dex
+	bpl dd6
 
 	rts
 
