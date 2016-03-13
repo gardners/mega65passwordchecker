@@ -41,18 +41,9 @@ ll9:	 lda #$20
 	 jsr resetpassword
 
 mainloop:
-	lda passwordlength
-	sta $0402
-	lda passwordentropy
-	sta $0403
-	lda bitsperchar
-	sta $0404
-	lda valuesperchar
-	sta $0405
 
 	; get next key
 	jsr $ffe4
-	sta $0400
 	cmp #$00
 	beq mainloop
 
@@ -73,7 +64,6 @@ ml1:
 	; get character class of character
 	tax
 	lda asciitable,x
-	sta $0427
 	cmp #$ff
 	beq mainloop
 	tax
@@ -81,7 +71,6 @@ ml1:
 	clc
 	adc #$01
 	sta characterclasslist,x
-	sta $0426
 	inc passwordlength
 	jsr calculatepasswordentropy
 	jsr displaypasswordquality
@@ -126,8 +115,6 @@ selectnextlanguage:
 	lda #$00
 	sta language
 sl1:	; copy the messages down
-
-	sta $0401
 
 	cmp #$00
 	bne sl2
