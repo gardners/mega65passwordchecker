@@ -1,0 +1,327 @@
+
+	.outfile "passcheck.prg"
+
+	 .word $0801
+	 .org $0801
+
+	 .scope
+	 .word _next, 10                       ; Next line and current line number
+	 .byte $97, "2,0:", $9e, " 2014", $AA, "65",0      ; POKE 2,0 : SYS 2014+65
+_next:	 .word 0
+    
+	 .checkpc 2079
+	 .advance 2079
+
+	 ; Clear screen
+	 lda #$0e
+	 sta $d020
+	 lda #$06
+	 sta $d021
+	 ; Lower-case
+	 lda #$0e
+	 jsr $ffd2
+	 
+	 ldx #0
+ll9:	 lda #$20
+	 sta $0400,x
+	 sta $0500,x
+	 sta $0600,x
+	 sta $0700,x
+	 lda #$e
+	 sta $d800,x
+	 sta $d900,x
+	 sta $da00,x
+	 sta $db00,x
+	 inx
+	 bne ll9
+
+	 jsr selectnextlanguage
+	 jsr redrawprompts
+
+	 jsr resetpassword
+
+mainloop:
+	; get next key
+	jsr $ffe4
+	sta $0400
+	cmp #$00
+	beq mainloop
+
+	; Is it F1?
+	cmp #$85
+	beq nextlanguage
+	; exit on <-
+	cmp #95
+	bne ml1	
+	lda #147
+	jsr $ffd2
+	jmp ($a002)
+ml1:
+	jmp mainloop
+
+	rts
+
+nextlanguage:
+	jsr selectnextlanguage
+	jsr redrawprompts
+	jmp mainloop
+
+redrawprompts:
+	 ; top and bottom text
+	 ldy #39
+ll13:	 lda passwordprompt,y
+	 jsr asciitocharrom
+	 ora #$80
+	 sta $0608,y
+	 lda nextlanguageprompt,y
+	 jsr asciitocharrom
+	 ora #$80
+	 sta $07c0,y
+	 dey
+	 bpl ll13
+
+	 ; Current password strength, based on estimated entropy of the password
+	 jsr calculatepasswordentropy
+	 jsr displaypasswordquality
+
+	 rts
+
+selectnextlanguage:
+	; Increase the language number
+	lda language
+	clc
+	adc #$01
+	sta language
+	cmp #$03
+	bcc sl1
+	lda #$00
+	sta language
+sl1:	; copy the messages down
+
+	sta $0401
+
+	cmp #$00
+	bne sl2
+	ldx #0
+sl6:	lda english,x
+	sta currentlanguage,x
+	inx
+	cpx #240
+	bne sl6
+	rts
+sl2:	
+	cmp #$01
+	bne sl3
+	ldx #0
+sl5:	lda deutsch,x
+	sta currentlanguage,x
+	inx
+	cpx #240
+	bne sl5
+	rts
+sl3:
+	ldx #0
+sl4:	lda australian,x
+	sta currentlanguage,x
+	inx
+	cpx #240
+	bne sl4
+	rts
+
+	
+
+language: .byte $ff
+
+currentlanguage:
+passwordprompt:
+	.byte "                                        "
+nextlanguageprompt:
+	.byte "                                        "
+passwordqualitybad:
+	.byte "                                        "
+passwordqualityfair:
+	.byte "                                        "
+passwordqualitybetter:
+	.byte "                                        "
+passwordqualitybest:
+	.byte "                                        "
+
+
+english:
+	.byte "Please start typing a password to test: "
+	.byte "F1 - Language / Sprache                 "
+	.byte "Password is very weak.                  "
+	.byte "Password is weak.                       "
+	.byte "Password is marginal.                   "
+	.byte "Password is good.                       "
+deutsch:
+	.byte "Bitte tippen ein Passwort zu pruefen:   "
+	.byte "F1 - Language / Sprache                 "
+	.byte "Passwort ist ganz schlecht.             "
+	.byte "Passwort ist noch schlecht.             "
+	.byte "Passwort ist der Randstaerke.           "
+	.byte "Password ist gut.                       "
+australian:
+	.byte "Type something for a password:          "
+	.byte "Wrong lingo? Versteht nicht? Hit/Tue F1."
+	.byte "Wouldn't keep a galah out of a dunny.   "
+	.byte "The password is still cactus.           "
+	.byte "Password's still a bit dodgy.           "
+	.byte "Password's a corker.                    "
+
+displaypasswordquality:
+	ldx #$00
+	lda passwordentropy
+	cmp #30
+	bcc dpq1
+dpq2:
+	; offset to next quality message
+	pha
+	txa
+	clc
+	adc #40
+	tax
+	pla
+
+	; subtract 30 bits of entropy from password, and see if still positive.
+	sec
+	sbc #30
+	bcs dpq2
+dpq1:
+	; Don't go beyond list of messages
+	cpx #120
+	bcc dpq3
+	ldx #120
+dpq3:
+
+	; display password quality
+	ldy #0
+dpq4:	lda currentlanguage+80,x
+	jsr asciitocharrom
+	sta $0748,y
+	inx
+	iny
+	cpy #40
+	bne dpq4
+
+resetpassword:
+	lda #$00
+	sta passwordlength
+	sta passwordbits
+	sta bitsperchar
+	
+	sta alpha1
+	sta alpha2
+	sta numeric
+	sta other
+
+calculatepasswordentropy:
+	lda #$00
+	sta valuesperchar
+	lda alpha1
+	beq ubpc1
+	lda valuesperchar
+	clc
+	adc #26
+ubpc1:
+	lda alpha2
+	beq ubpc2
+	lda valuesperchar
+	clc
+	adc #26
+ubpc2:
+	lda numeric
+	beq ubpc3
+	lda valuesperchar
+	clc
+	adc #10
+ubpc3:
+	; for symbols, while there are many possible, we assume only 16 get used.
+ 	lda other
+	beq ubpc4
+	lda valuesperchar
+	clc
+	adc #16
+ubpc4:
+	; now work out how many bits per char
+	ldx #$00
+	lda valuesperchar
+ubpc5:	beq ubpc8
+	inx
+	clc
+	lsr
+	jmp ubpc5
+	stx bitsperchar
+ubpc8:
+	; Then from that, work out estimated entropy of password
+	; We only allow 6 bits of entropy per char, and 40 chars,
+	; so total entropy is limited to 240 bits, which fits in a register.
+	ldx passwordlength
+	lda #$00
+ubpc7:	cpx #$00
+	beq ubpc6
+	clc
+	adc bitsperchar
+	dex
+	jmp ubpc7
+ubpc6:
+	sta passwordentropy
+
+	rts
+
+passwordentropy:
+	.byte $00
+passwordlength:
+	.byte $00
+passwordbits:
+	.byte $00
+valuesperchar:
+	.byte $00
+bitsperchar:
+	.byte $00
+alpha1:
+	.byte $00
+alpha2:
+	.byte $00
+numeric:
+	.byte $00
+other:
+	.byte $00
+	
+
+asciitocharrom:
+	; NUL ($00) becomes a space
+	cmp #0
+	bne atc0
+	lda #$20
+atc0:
+	; @ becomes $00
+	cmp #$40
+	bne atc1
+	lda #0
+	rts
+atc1:
+	cmp #$5b
+	bcs atc2
+	; A to Z -> leave unchanged
+	rts
+atc2:
+	cmp #$5b
+	bcc atc3
+	cmp #$60
+	bcs atc3
+	; [ \ ] ^ _ -> subtract $40
+	and #$1f
+	rts
+atc3:
+	cmp #$61
+	bcc atc4
+	cmp #$7b
+	bcs atc4
+	; a - z -> subtract $60
+	and #$1f
+	rts
+atc4:	rts
+
+	 .scend
+
