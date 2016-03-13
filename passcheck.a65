@@ -69,14 +69,11 @@ mainloop:
 	; XXX check for delete!
 	
 ml1:
-	; ignore chars >=$80
-	eor #$00
-	bmi mainloop
-
 	; we are just left with chars $00-$7f
 	; get character class of character
 	tax
 	lda asciitable,x
+	sta $0427
 	cmp #$ff
 	beq mainloop
 	tax
@@ -338,11 +335,22 @@ asciitable:
 	.byte 0,0,0,0,0,0,0,0
 	.byte 0,0,0,0,0,0,0,0
 	.byte 0,0,0,3,3,3,3,3
-	; alternate case letters
+	; $60-$7f
+	.byte 3,3,3,3,3,3,3,3
+	.byte 3,3,3,3,3,3,3,3
+	; $80-$BF
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	; $C0-$DF - upper-case letters
 	.byte 3,0,0,0,0,0,0,0
 	.byte 0,0,0,0,0,0,0,0
 	.byte 0,0,0,0,0,0,0,0
 	.byte 0,0,0,3,3,3,3,3
+	; $E0-$FF - ignore
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 		
 
 
