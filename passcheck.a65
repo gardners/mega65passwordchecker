@@ -281,13 +281,15 @@ ubpc4:
 	; now work out how many bits per char
 	ldx #$00
 	lda valuesperchar
-ubpc5:	beq ubpc8
+ubpc5:	cmp #$00
+	beq ubpc8
 	inx
 	clc
 	lsr
 	jmp ubpc5
-	stx bitsperchar
 ubpc8:
+	stx bitsperchar
+
 	; Then from that, work out estimated entropy of password
 	; We only allow 6 bits of entropy per char, and 40 chars,
 	; so total entropy is limited to 240 bits, which fits in a register.
