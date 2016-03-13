@@ -201,8 +201,10 @@ australian:
 displaypasswordquality:
 	ldx #$00
 	lda passwordentropy
+dpq22:
 	cmp #50  ; quality steps are 50 bits each (~= 10 mono-case letters)
-	bcc dpq1
+	bcs dpq2
+	jmp dpq1
 dpq2:
 	; offset to next quality message
 	pha
@@ -212,10 +214,10 @@ dpq2:
 	tax
 	pla
 
-	; subtract 30 bits of entropy from password, and see if still positive.
+	; subtract 50 bits of entropy from password, and see if still positive.
 	sec
-	sbc #30
-	bcs dpq2
+	sbc #50
+	bcs dpq22
 dpq1:
 	; Don't go beyond list of messages
 	cpx #120
