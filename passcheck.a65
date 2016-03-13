@@ -36,9 +36,11 @@ ll9:	 lda #$20
 	 bne ll9
 
 	 jsr selectnextlanguage
+newpass:
 	 jsr redrawprompts
 
 	 jsr resetpassword
+	 jsr displaypasswordquality
 
 mainloop:
 
@@ -50,6 +52,8 @@ mainloop:
 	; Is it F1? switch language
 	cmp #$85
 	beq nextlanguage
+	cmp #$0d
+	beq newpass
 	; Is it F7? exit
 	cmp #$88
 	bne ml1
@@ -211,6 +215,7 @@ dpq1:
 	bcc dpq3
 	ldx #120
 dpq3:
+	stx qualitystep
 
 	; display password quality
 	ldy #0
@@ -222,7 +227,34 @@ dpq4:	lda currentlanguage+80,x
 	cpy #40
 	bne dpq4
 
+	; now also display a colour-coded password entry indicator.
+	ldx #$0 ; black by default
+	lda qualitystep
+	cmp #120
+	bne dd1
+	ldx #$5 ; green for good
+dd1:	cmp #80
+	bne dd2
+	ldx #$7 ; yellow for marginal
+dd2:	cmp #40
+	bne dd3
+	ldx #$8 ; red for bad (but not worst)
+dd3:	sta qualitycolour
+
+	ldx #0
+	lda #42 ; asterisk for character display of password
+dd5:	cpx passwordlength
+	bcc dd4
+	lda #$20 ; space for beyond end of password
+dd4:	sta $06f8,x
+	inx
+	cpx #40
+	bne dd5
+
 	rts
+
+qualitystep:	.byte 0
+qualitycolour:	.byte 0
 
 resetpassword:
 	lda #$00
