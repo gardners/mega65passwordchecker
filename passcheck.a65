@@ -81,6 +81,7 @@ ml1:
 	clc
 	adc #$01
 	sta characterclasslist,x
+	sta $0426
 	inc passwordlength
 	jsr calculatepasswordentropy
 	jsr displaypasswordquality
@@ -253,18 +254,21 @@ calculatepasswordentropy:
 	lda valuesperchar
 	clc
 	adc #26
+	sta valuesperchar
 ubpc1:
 	lda alpha2
 	beq ubpc2
 	lda valuesperchar
 	clc
 	adc #26
+	sta valuesperchar
 ubpc2:
 	lda numeric
 	beq ubpc3
 	lda valuesperchar
 	clc
 	adc #10
+	sta valuesperchar
 ubpc3:
 	; for symbols, while there are many possible, we assume only 16 get used.
  	lda other
@@ -272,6 +276,7 @@ ubpc3:
 	lda valuesperchar
 	clc
 	adc #16
+	sta valuesperchar
 ubpc4:
 	; now work out how many bits per char
 	ldx #$00
