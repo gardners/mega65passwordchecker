@@ -201,7 +201,7 @@ australian:
 displaypasswordquality:
 	ldx #$00
 	lda passwordentropy
-	cmp #30
+	cmp #50  ; quality steps are 50 bits each (~= 10 mono-case letters)
 	bcc dpq1
 dpq2:
 	; offset to next quality message
