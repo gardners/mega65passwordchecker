@@ -55,9 +55,11 @@ mainloop:
 	cmp #$0d
 	beq newpass
 	; Is it F7? exit
+	cmp #3
+	beq mp11
 	cmp #$88
 	bne ml1
-	lda #147
+mp11:	lda #147
 	jsr $ffd2
 	jmp ($a002)
 
@@ -134,7 +136,7 @@ selectnextlanguage:
 	clc
 	adc #$01
 	sta language
-	cmp #$03
+	cmp #$04
 	bcc sl1
 	lda #$00
 	sta language
@@ -160,6 +162,16 @@ sl5:	lda deutsch,x
 	bne sl5
 	rts
 sl3:
+	cmp #$03
+	bne sl33
+	ldx #0
+sl55:	lda leet,x
+	sta currentlanguage,x
+	inx
+	cpx #240
+	bne sl55
+	rts
+sl33:
 	ldx #0
 sl4:	lda australian,x
 	sta currentlanguage,x
@@ -195,11 +207,11 @@ english:
 	.byte "Password is marginal.                   "
 	.byte "Password is good.                       "
 deutsch:
-	.byte "Bitte tippen ein Passwort zu pruefen:   "
+	.byte "Bitte geben Sie ein Passwort ein:       "
 	.byte "F1 - Language / Sprache                 "
-	.byte "Passwort ist ganz schlecht.             "
-	.byte "Passwort ist noch schlecht.             "
-	.byte "Passwort ist der Randstaerke.           "
+	.byte "Passwort ist sehr schwach.              "
+	.byte "Passwort ist schwach.                   "
+	.byte "Passwort ist mittelmaessig.             "
 	.byte "Password ist gut.                       "
 australian:
 	.byte "Type something for a password:          "
@@ -208,6 +220,13 @@ australian:
 	.byte "The password is still cactus.           "
 	.byte "Password's still a bit dodgy.           "
 	.byte "Password's a corker.                    "
+leet:
+	.byte "Wie lame ist dein Passwort? Gib es mir: "
+	.byte "F1 ist nur fuer Lamers.                 "
+	.byte "Lame.                                   "
+	.byte "Immer noch lame.                        "
+	.byte "Ziemlich lame.                          "
+	.byte "Leet.                                   "
 
 displaypasswordquality:
 	ldx #$00
@@ -231,9 +250,9 @@ dpq2:
 	bcs dpq22
 dpq1:
 	; Don't go beyond list of messages
-	cpx #120
+	cpx #160
 	bcc dpq3
-	ldx #120
+	ldx #160
 dpq3:
 	stx qualitystep
 
