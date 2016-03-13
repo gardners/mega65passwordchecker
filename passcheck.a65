@@ -41,22 +41,53 @@ ll9:	 lda #$20
 	 jsr resetpassword
 
 mainloop:
+	lda passwordlength
+	sta $0402
+	lda passwordentropy
+	sta $0403
+	lda bitsperchar
+	sta $0404
+	lda valuesperchar
+	sta $0405
+
 	; get next key
 	jsr $ffe4
 	sta $0400
 	cmp #$00
 	beq mainloop
 
-	; Is it F1?
+	; Is it F1? switch language
 	cmp #$85
 	beq nextlanguage
-	; exit on <-
-	cmp #95
-	bne ml1	
+	; Is it F7? exit
+	cmp #$88
+	bne ml1
 	lda #147
 	jsr $ffd2
 	jmp ($a002)
+
+	; XXX check for delete!
+	
 ml1:
+	; ignore chars >=$80
+	eor #$00
+	bmi mainloop
+
+	; we are just left with chars $00-$7f
+	; get character class of character
+	tax
+	lda asciitable,x
+	cmp #$ff
+	beq mainloop
+	tax
+	lda characterclasslist,x
+	clc
+	adc #$01
+	sta characterclasslist,x
+	inc passwordlength
+	jsr calculatepasswordentropy
+	jsr displaypasswordquality
+
 	jmp mainloop
 
 	rts
@@ -204,6 +235,8 @@ dpq4:	lda currentlanguage+80,x
 	cpy #40
 	bne dpq4
 
+	rts
+
 resetpassword:
 	lda #$00
 	sta passwordlength
@@ -279,6 +312,7 @@ valuesperchar:
 	.byte $00
 bitsperchar:
 	.byte $00
+characterclasslist:
 alpha1:
 	.byte $00
 alpha2:
@@ -287,7 +321,31 @@ numeric:
 	.byte $00
 other:
 	.byte $00
-	
+asciitable:
+	; control characters are assumed to be illegal
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	.byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	; space and punctuation: other class
+	.byte 3,3,3,3,3,3,3,3
+	.byte 3,3,3,3,3,3,3,3
+	; numbers and punctuation
+	.byte 2,2,2,2,2,2,2,2
+	.byte 2,2,3,3,3,3,3,3
+	; @ and letters
+	.byte 3,0,0,0,0,0,0,0
+	.byte 0,0,0,0,0,0,0,0
+	.byte 0,0,0,0,0,0,0,0
+	.byte 0,0,0,3,3,3,3,3
+	; alternate case letters
+	.byte 3,0,0,0,0,0,0,0
+	.byte 0,0,0,0,0,0,0,0
+	.byte 0,0,0,0,0,0,0,0
+	.byte 0,0,0,3,3,3,3,3
+		
+
+
 
 asciitocharrom:
 	; NUL ($00) becomes a space
